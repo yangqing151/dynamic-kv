@@ -4,6 +4,7 @@ import com.yang.constant.BitCaskConstant;
 
 import java.io.File;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
@@ -63,6 +64,11 @@ public class KeyDir {
      * @return 老的value元数据
      */
     public ValueMeta putValueMeta(String key, ValueMeta valueMeta) {
+        // todo @lq
+        return null;
+    }
+
+    public List<String> keys() {
         // todo @lq
         return null;
     }

@@ -1,13 +1,21 @@
 package com.yang;
 
+import com.yang.constant.BitCaskConstant;
 import org.apache.commons.collections4.CollectionUtils;
 
 import java.io.File;
-import java.util.List;
-import java.util.Objects;
+import java.io.FilenameFilter;
+import java.util.*;
 import java.util.function.BiConsumer;
+import java.util.stream.Collectors;
 
 public class BitCask implements IStorage {
+
+    /**
+     * 文件比较器，文件名称倒序排序
+     */
+    private static final Comparator<File> FILE_NAME_DESC_COMPARATOR = (x, y) -> Integer.compare(0, x.getName().compareTo(y.getName()));
+
 
     private KeyDir keyDir;
 
@@ -43,7 +51,7 @@ public class BitCask implements IStorage {
         if (Objects.isNull(value)) {
             throw new IllegalArgumentException("value can not be null");
         }
-        
+
         // 更新磁盘数据
         ValueMeta valueMeta = bitCaskManager.write(key, value);
 
@@ -54,11 +62,22 @@ public class BitCask implements IStorage {
 
     @Override
     public void delete(String key) {
+        if (Objects.isNull(key)) {
+            throw new IllegalArgumentException("key can not be null");
+        }
+
+        // 写入磁盘空数据
+        // 这边写入，使得merge时要将之前写入的值删除
+        bitCaskManager.writeDeleteKey(key);
+
+        // 删除内存值元数据
+        keyDir.remove(key);
     }
 
     @Override
     public List<String> listKeys() {
-        return null;
+
+        return keyDir.keys();
     }
 
     @Override
@@ -74,8 +93,60 @@ public class BitCask implements IStorage {
 
     @Override
     public void merge(File file) {
+        if (!file.isDirectory()) {
+            throw new IllegalArgumentException("file must be directory");
+        }
+
+        // 只找data文件
+        File[] files = file.listFiles((dir, name) -> name.contains(BitCaskConstant.BIT_CASK_DATA_PREFIX));
+
+        // 没有文件或者文件数不超过2，不用处理
+        if (Objects.isNull(files) || files.length <= 2) {
+            return;
+        }
+
+        // 获取所有old文件，排除最新的active文件
+        List<File> oldSortedFiles = Arrays.stream(files)
+                .sorted(FILE_NAME_DESC_COMPARATOR)
+                .limit(files.length - 1)
+                .collect(Collectors.toList());
+
+        for (File oldFile : oldSortedFiles) {
+            // 遍历file所有key，处理
+            int offset = 0;
+            LogEntry logEntry = null;
+            do {
+                logEntry = FileManager.read(file, offset);
+                if (Objects.isNull(logEntry)) {
+                    break;
+                }
+
+                // keyDir中存在该key
+                ValueMeta valueMeta = ValueMeta.builder()
+                        .fileId(oldFile.getName())
+                        .valueSize(logEntry.getValueSize())
+                        .valuePosition(logEntry.getValuePosition(offset))
+                        .timestamp(logEntry.getTimestamp())
+                        .build();
+                if (keyDir.valueEquals(logEntry.getKey(),  valueMeta)) {
+                    // 写入merge文件
+
+
+                    // 写入hint文件，如果此时存在hint文件如何处理
+                    // todo @lq 巩固file使用
+                }
+
+                offset += logEntry.getSize();
+            } while (true);
+
+        }
+
+
+
+
 
     }
+
 
     @Override
     public void open(File file, OpenOptions openOptions) {

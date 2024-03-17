@@ -11,19 +11,21 @@ public class BitCaskConstant {
      * 数据文件名称
      * %s为秒级时间戳
      */
-    public static final String BIT_CASK_DATA_NAME = "%s.bitcask.data";
+    public static final String BIT_CASK_DATA_PREFIX = "bitcask.data";
 
     /**
      * hint文件名称
      * %s为秒级时间戳
      */
-    public static final String BIT_CASK_HINT_NAME = "%s.bitcask.hint";
+    public static final String BIT_CASK_HINT_PREFIX = "bitcask.hint";
 
     /**
      * 合并文件名称
      * %s为秒级时间戳
      */
-    public static final String BIT_CASK_MERGE_NAME = "%s.bitcask.merge";
+    public static final String BIT_CASK_MERGE_PREFIX = "bitcask.merge";
+
+
 
 
 

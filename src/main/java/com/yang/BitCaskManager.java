@@ -26,4 +26,14 @@ public class BitCaskManager {
         return null;
 
     }
+
+    /**
+     * 写入删除的key
+     * @param key 删除的key
+     * @return value元数据，时间戳为0
+     */
+    public ValueMeta writeDeleteKey(String key) {
+        // todo @lq
+        return null;
+    }
 }

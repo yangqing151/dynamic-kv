@@ -56,12 +56,12 @@ BitCask是本地kv存储。本地意味着存储在当前主机，没有涉及�
 
 * 删除操作
   * 先把KeyDir中对应的key给删除
-  * 在磁盘Active文件中追加一条目录，timestamp为0，表示删除。条目中其他数据是从KeyDir中获取的
+  * 在磁盘Active文件中追加一条目录，timestamp为0，表示删除。
 
 * 合并操作
   * 目的：更新、删除key都是在文件中追加的方式，长期下来很耗空间。清除无用的数据。
   * 时机：后台进行，不影响正常读写
-  * 遍历所有非活跃文件(旧文件)，
+  * 遍历所有非活跃文件(旧文件)，要求按时间顺序排序
     * 写入一个merge文件：如果文件的key在KeyDir中存在，并且timestamp、文件ID和value偏移量相同，说明是最新的，就写入到merge文件中
       * 注意：merge文件是一组文件；merge文件写成后也永远不会被写入
     * 写入一个hint文件：将上面写入merge文件的时间戳、key的长度、value的长度和key写入到hint文件中，作为索引文件
@@ -72,6 +72,13 @@ BitCask是本地kv存储。本地意味着存储在当前主机，没有涉及�
 
 启动：
 * 启动后，所有文件都是old data file。如果存在hint，就把hint加载到KeyDir，否则从data file中加载KeyDir
+* 顺序遍历old file和hint file
+  * 如果没有hint file，从old file加载KeyDir
+    * 如果key在KeyDir中不存在，并且时间戳不为0，加入到keyDir中
+    * 如果key在KeyDir中不存在，并且时间戳为0，不加入到keyDir中。
+    * 如果key在KeyDir中存在，并且key时间戳为0，从keyDir中删除key。
+    * 如果key在KeyDir中存在，并且key时间戳不为0，将key更新到KeyDir中
+  * 如果有hint file，从hint file加载KeyDir，同上
 
 hint文件的用处：
 * 崩溃恢复。当系统崩溃重启时，可以通过hint文件快速构建KeyDir
